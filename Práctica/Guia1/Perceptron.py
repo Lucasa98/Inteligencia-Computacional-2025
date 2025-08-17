@@ -2,15 +2,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Perceptron:
-    def __init__(self, N, rate, maxEpocas, funcionActivacion, bias = None):
-        """Perceptron simple
+    """Perceptron simple con un numero fijo de entradas.
 
+    Atributos
+    ------
+    w : array[float]
+        vector de pesos para las entradas + umbral.
+
+    Metodos
+    ------
+    entrenar(x, yd, targetError = 0)
+        Entrena el perceptron con unas entradas y salidas esperadas
+
+    test(x, yd)
+        Testea el perceptron y devuelve la tasa de error
+
+    graphTraining()
+        Imprime un grafico con la evolucion de los pesos a lo largo del entrenamiento
+    """
+
+    def __init__(self, N: int, rate: float, maxEpocas: int, funcionActivacion: callable, bias: float = None):
+        """
         Args:
             N (int): numero de entradas
             rate (float): tasa de aprendizaje
             maxEpocas (int): numero maximo de epocas
-            bias (float): umbral de activacion inicial
             funcionActivacion (callable): funcion de activacion a utilizar
+            bias (float, optional): umbral de activacion inicial
         """
         self.rate = rate
         self.maxEpocas = maxEpocas
@@ -21,14 +39,14 @@ class Perceptron:
         self.initW()
 
     @property
-    def w(self):
+    def w(self) -> np.ndarray[float]:
         """Vector de pesos actual
 
         Raises:
             RuntimeError: _description_
 
         Returns:
-            _type_: _description_
+            NDArray[float]: _description_
         """
         if self.W.shape[0] == 0:
             raise RuntimeError('Pesos no inicializados')
@@ -39,7 +57,7 @@ class Perceptron:
         """Actualiza la lista de pesos agregando N pesos nuevos, que pasan a ser los actuales
 
         Args:
-            w (arrat<float>): pesos a agregar
+            w (list[float] | np.ndarray): pesos a agregar
 
         Raises:
             TypeError: el numero de pesos no coincide con el numero de entradas (N)
@@ -59,11 +77,11 @@ class Perceptron:
             self.w[-1] = self.bias
         self.W = np.vstack([self.W, w_init])
 
-    def suma(self, x):
+    def suma(self, x) -> float:
         """suma ponderada
 
         Args:
-            x (array<float>): entradas
+            x (list[float]): entradas
 
         Raises:
             TypeError: error de tamanio de pesos y entradas
@@ -76,11 +94,11 @@ class Perceptron:
 
         return np.dot(self.w,x)
 
-    def calcular(self, x):
+    def calcular(self, x) -> float:
         """Salida del perceptron segun su funcion de activacion
 
         Args:
-            x (array<float>): entradas
+            x (list[float]): entradas
 
         Returns:
             float: salida
@@ -94,17 +112,17 @@ class Perceptron:
         """ajusta los pesos segun las entradas y el error de la prediccion
 
         Args:
-            x (arrat<float>): entradas
+            x (list[float]): entradas
             error (float): error de la prediccion
         """
         self.addW(self.w + self.rate * error * x)
 
-    def errorRate(self, x, yd):
+    def errorRate(self, x, yd) -> float:
         """Tasa de error
 
         Args:
-            x (array<array<float>>): entradas
-            yd (arrat<float>): salidas esperadas
+            x (list[list[float]]): entradas
+            yd (list[float]): salidas esperadas
 
         Returns:
             float: tasa de error
@@ -118,12 +136,12 @@ class Perceptron:
 
         return fallos/casos
 
-    def entrenar(self, x, yd, targetError = 0):
+    def entrenar(self, x, yd, targetError = 0) -> float:
         """Entrenar perceptron con datos de entradas y salidas esperadas
 
         Args:
-            x (array<array<float>>): entradas
-            yd (array<float>): salidas esperadas
+            x (list[list[float]]): entradas
+            yd (list[float]): salidas esperadas
             targetError (float, optional): criterio de corte, si no se especifica se realiza el numero maximo de epocas. Por defecto 0.
 
         Returns:
@@ -154,12 +172,12 @@ class Perceptron:
 
         return error
 
-    def test(self, x, yd):
+    def test(self, x, yd) -> float:
         """Testear perceptron con datos y salidas esperadas
 
         Args:
-            x (array<array<float>>): entradas
-            yd (arrat<float>): salidas esperadas
+            x (list[list[float]]): entradas
+            yd (list[float]): salidas esperadas
 
         Returns:
             float: tasa de error
