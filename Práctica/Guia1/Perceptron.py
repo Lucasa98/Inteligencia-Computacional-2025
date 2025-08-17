@@ -1,10 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Perceptron:
-    def __init__(self, rate, maxEpocas, funcionActivacion, bias = None):
+    def __init__(self, N, rate, maxEpocas, funcionActivacion, bias = None):
         """Perceptron simple
 
         Args:
+            N (int): numero de entradas
             rate (float): tasa de aprendizaje
             maxEpocas (int): numero maximo de epocas
             bias (float): umbral de activacion inicial
@@ -15,18 +17,47 @@ class Perceptron:
         self.bias = bias
         self.rng = np.random.default_rng()
         self.phi = funcionActivacion
-        self.w = []
+        self.N = N + 1 # entradas + bias
+        self.initW()
 
-    def initW(self, N):
-        """Inicializa los pesos de forma aleatoria en [-0.5,0.5)
+    @property
+    def w(self):
+        """Vector de pesos actual
+
+        Raises:
+            RuntimeError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if self.W.shape[0] == 0:
+            raise RuntimeError('Pesos no inicializados')
+
+        return self.W[-1]
+
+    def addW(self, w):
+        """Actualiza la lista de pesos agregando N pesos nuevos, que pasan a ser los actuales
 
         Args:
-            N (int): numero de pesos
+            w (arrat<float>): pesos a agregar
+
+        Raises:
+            TypeError: el numero de pesos no coincide con el numero de entradas (N)
         """
-        self.N = N + 1
-        self.w = self.rng.uniform(-0.5, 0.5, N)
-        if self.bias != None:
+        if w.shape[0] != self.N:
+            raise TypeError(f"Se esperaban {self.N} pesos. w.shape[0]={w.shape[0]}")
+
+        # solo agregar al historial si es distinto del actual
+        if not np.array_equal(self.w, w):
+            self.W = np.vstack([self.W, w])
+
+    def initW(self):
+        """Inicializa los pesos de forma aleatoria en [-0.5,0.5)"""
+        self.W = np.empty((0,self.N), dtype=float)
+        w_init = self.rng.uniform(-0.5, 0.5, self.N)
+        if self.bias != None:   # Si se especifica un bias, se empiza con ese valor
             self.w[-1] = self.bias
+        self.W = np.vstack([self.W, w_init])
 
     def suma(self, x):
         """suma ponderada
@@ -40,8 +71,8 @@ class Perceptron:
         Returns:
             float: suma ponderada
         """
-        if len(x) != len(self.w):
-            raise TypeError(f"El numero de entradas no coincide con las del perceptron. len(x)={len(x)}, len(self.w)={len(self.w)}")
+        if x.shape[0] != self.N:
+            raise TypeError(f"Se esperaban {self.N} entradas. x.shape[0]={x.shape[0]}")
 
         return np.dot(self.w,x)
 
@@ -54,6 +85,9 @@ class Perceptron:
         Returns:
             float: salida
         """
+        if self.N != x.shape[0]:
+            raise TypeError(f"Se esperaban {self.N} entradas. x.shape[0]={x.shape[0]}")
+
         return self.phi(self.suma(x))
 
     def ajustarPesos(self, x, error):
@@ -63,7 +97,7 @@ class Perceptron:
             x (arrat<float>): entradas
             error (float): error de la prediccion
         """
-        self.w = self.w + self.rate * error * x
+        self.addW(self.w + self.rate * error * x)
 
     def errorRate(self, x, yd):
         """Tasa de error
@@ -85,21 +119,24 @@ class Perceptron:
         return fallos/casos
 
     def entrenar(self, x, yd, targetError = 0):
-        """Entrenas perceptron con datos de entradas y salidas esperadas
+        """Entrenar perceptron con datos de entradas y salidas esperadas
 
         Args:
             x (array<array<float>>): entradas
             yd (array<float>): salidas esperadas
-            targetError (float, optional): especificar si se quiere especificar una tasa de error, si no realiza el maximo de epocas. Por defecto 0.
+            targetError (float, optional): criterio de corte, si no se especifica se realiza el numero maximo de epocas. Por defecto 0.
 
         Returns:
             float: tasa de error final segun datos de entrenamiento
         """
-        # agregar entrada del bias
-        x = np.hstack([x, -1 * np.ones((x.shape[0], 1))])
-
+        # Inicializar pesos
         casos = x.shape[0]
-        self.initW(x.shape[1])
+
+        # agregar entrada del bias
+        x = np.hstack([x, -1 * np.ones((casos, 1))])
+
+        if self.N != x.shape[1]:
+            raise TypeError(f"Se esperaban {self.N} entradas. x.shape[1]={x.shape[1]}")
 
         error = 0.0
         for i in range(self.maxEpocas):
@@ -118,7 +155,7 @@ class Perceptron:
         return error
 
     def test(self, x, yd):
-        """Testear perceptron con datos y salidas esperadass
+        """Testear perceptron con datos y salidas esperadas
 
         Args:
             x (array<array<float>>): entradas
@@ -127,7 +164,32 @@ class Perceptron:
         Returns:
             float: tasa de error
         """
+        if self.N-1 != x.shape[1]:
+            raise TypeError(f"Se esperaban {self.N} entradas. x.shape[1]={x.shape[1]}")
+
         # agregar entrada del bias
         x = np.hstack([x, -1 * np.ones((x.shape[0], 1))])
 
         return self.errorRate(x,yd)
+
+    def graphTraining(self):
+        if self.N != 3:
+            raise TypeError('No se puede graficar para mas de 2 entradas (+bias)')
+
+        x_vals = np.linspace(-1, 1, 100)
+
+        plt.figure(figsize=(15,10))
+
+        for i, (w0, w1, w2) in enumerate(self.W):
+            if w1 == 0:
+                continue
+
+            y_vals = -(w0/w1) * x_vals - (w2 / w1)
+            plt.plot(x_vals, y_vals, label=f"Ajuste {i}")
+
+        plt.xlabel("x1")
+        plt.ylabel("x2")
+        plt.title("Evolucion del perceptron")
+        plt.legend()
+        plt.grid()
+        plt.show()
