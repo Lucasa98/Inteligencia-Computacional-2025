@@ -6,6 +6,8 @@ class Perceptron:
 
     Atributos
     ------
+    W : dict[int, np.ndarray]
+        historial de pesos, asociados con la iteracion te entrenamiento en la que se generaron. El ultimo es w
     w : array[float]
         vector de pesos para las entradas + umbral.
 
@@ -31,11 +33,12 @@ class Perceptron:
             bias (float, optional): umbral de activacion inicial
         """
         self.rate = rate
-        self.maxEpocas = maxEpocas
+        self.max_epocas = maxEpocas
         self.bias = bias
         self.rng = np.random.default_rng()
         self.phi = funcionActivacion
         self.N = N + 1 # entradas + bias
+        self.c_ajustes = 0
         self.initW()
 
     @property
@@ -43,17 +46,17 @@ class Perceptron:
         """Vector de pesos actual
 
         Raises:
-            RuntimeError: _description_
+            RuntimeError: si los pesos no estan inicializados
 
         Returns:
-            NDArray[float]: _description_
+            NDArray[float]: lista de pesos actuales
         """
-        if self.W.shape[0] == 0:
+        if len(self.W) == 0:
             raise RuntimeError('Pesos no inicializados')
 
-        return self.W[-1]
+        return self.W[-1][1]
 
-    def addW(self, w):
+    def addW(self, w: np.ndarray):
         """Actualiza la lista de pesos agregando N pesos nuevos, que pasan a ser los actuales
 
         Args:
@@ -65,17 +68,18 @@ class Perceptron:
         if w.shape[0] != self.N:
             raise TypeError(f"Se esperaban {self.N} pesos. w.shape[0]={w.shape[0]}")
 
+        self.c_ajustes += 1
+
         # solo agregar al historial si es distinto del actual
         if not np.array_equal(self.w, w):
-            self.W = np.vstack([self.W, w])
+            self.W.append((self.c_ajustes, w))
 
     def initW(self):
         """Inicializa los pesos de forma aleatoria en [-0.5,0.5)"""
-        self.W = np.empty((0,self.N), dtype=float)
         w_init = self.rng.uniform(-0.5, 0.5, self.N)
-        if self.bias != None:   # Si se especifica un bias, se empiza con ese valor
+        if self.bias != None:   # Si se especifica un bias, se empieza con ese valor
             self.w[-1] = self.bias
-        self.W = np.vstack([self.W, w_init])
+        self.W = [(0, w_init)]
 
     def suma(self, x) -> float:
         """suma ponderada
@@ -115,6 +119,8 @@ class Perceptron:
             x (list[float]): entradas
             error (float): error de la prediccion
         """
+        if (error) != 0:
+            print (x)
         self.addW(self.w + self.rate * error * x)
 
     def errorRate(self, x, yd) -> float:
@@ -157,7 +163,7 @@ class Perceptron:
             raise TypeError(f"Se esperaban {self.N} entradas. x.shape[1]={x.shape[1]}")
 
         error = 0.0
-        for i in range(self.maxEpocas):
+        for i in range(self.max_epocas):
             # ajustar con datos de training
             for n in range(casos):
                 # calcular salida
@@ -194,20 +200,46 @@ class Perceptron:
         if self.N != 3:
             raise TypeError('No se puede graficar para mas de 2 entradas (+bias)')
 
-        x_vals = np.linspace(-1, 1, 100)
+        x_vals = np.linspace(-2, 2, 100)
 
-        plt.figure(figsize=(15,10))
+        plt.figure(figsize=(10,10))
 
-        for i, (w0, w1, w2) in enumerate(self.W):
+        for it, w in self.W:
+            w1 = w[0]
+            w2 = w[1]
+            w0 = w[2]
             if w1 == 0:
                 continue
 
-            y_vals = -(w0/w1) * x_vals - (w2 / w1)
-            plt.plot(x_vals, y_vals, label=f"Ajuste {i}")
+            # w1x1 + w2x2 - w0 = 0 => x2 = -w1x1/w2 + w0/w2
+            y_vals = (-w1/w2) * x_vals + (w0 / w2)
+            plt.plot(x_vals, y_vals, label=f"Ajuste {int(it)}")
 
+        plt.axhline(y=0, color='k')
+        plt.axvline(x=0, color='k')
+        plt.xlim(-2,2)
+        plt.ylim(-2,2)
         plt.xlabel("x1")
         plt.ylabel("x2")
         plt.title("Evolucion del perceptron")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    def graphWeightEvol(self):
+        plt.figure(figsize=(15,5))
+
+        it_values = [it for it,_ in self.W]
+
+        w0 = [w[-1] for _,w in self.W]
+        plt.plot(it_values, w0, label=f"w0")
+        for i in range(self.N-1):
+            wi = [w[i] for _,w in self.W]
+            
+            plt.plot(it_values, wi, label=f"w{i+1}")
+
+        plt.xlabel('iteracion')
+        plt.ylabel('peso')
         plt.legend()
         plt.grid()
         plt.show()
