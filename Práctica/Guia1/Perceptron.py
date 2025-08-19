@@ -119,8 +119,6 @@ class Perceptron:
             x (list[float]): entradas
             error (float): error de la prediccion
         """
-        if (error) != 0:
-            print (x)
         self.addW(self.w + self.rate * error * x)
 
     def errorRate(self, x, yd) -> float:
@@ -142,7 +140,7 @@ class Perceptron:
 
         return fallos/casos
 
-    def entrenar(self, x, yd, targetError = 0) -> float:
+    def entrenar(self, x, yd, targetError = -1) -> float:
         """Entrenar perceptron con datos de entradas y salidas esperadas
 
         Args:
@@ -196,13 +194,15 @@ class Perceptron:
 
         return self.errorRate(x,yd)
 
-    def graphTraining(self):
+    def graphTraining(self, limit = -1):
         if self.N != 3:
             raise TypeError('No se puede graficar para mas de 2 entradas (+bias)')
 
         x_vals = np.linspace(-2, 2, 100)
 
         plt.figure(figsize=(10,10))
+
+        W = self.W if limit == -1 else [w for i in ]
 
         for it, w in self.W:
             w1 = w[0]
