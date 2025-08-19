@@ -194,6 +194,15 @@ class Perceptron:
 
         return self.errorRate(x,yd)
 
+    def getPesos(self, limit: int) -> dict[int, np.ndarray[float]]:
+        if limit == -1 or limit >= len(self.W):
+            return self.W
+
+        # tomar `limit` indices uniformemente espaciados, incluyendo el ultimo
+        indices = np.linspace(0, len(self.W) - 1, limit, endpoint=True, dtype=int)
+        # elementos uniformemente espaciadas de self.W
+        return [self.W[i] for i in indices]
+
     def graphTraining(self, limit = -1):
         if self.N != 3:
             raise TypeError('No se puede graficar para mas de 2 entradas (+bias)')
@@ -202,9 +211,9 @@ class Perceptron:
 
         plt.figure(figsize=(10,10))
 
-        W = self.W if limit == -1 else [w for i in ]
+        W = self.getPesos(limit)
 
-        for it, w in self.W:
+        for it, w in W:
             w1 = w[0]
             w2 = w[1]
             w0 = w[2]
@@ -215,8 +224,8 @@ class Perceptron:
             y_vals = (-w1/w2) * x_vals + (w0 / w2)
             plt.plot(x_vals, y_vals, label=f"Ajuste {int(it)}")
 
-        plt.axhline(y=0, color='k')
-        plt.axvline(x=0, color='k')
+        plt.axhline(y=0, color='k', linestyle='--')
+        plt.axvline(x=0, color='k', linestyle='--')
         plt.xlim(-2,2)
         plt.ylim(-2,2)
         plt.xlabel("x1")
