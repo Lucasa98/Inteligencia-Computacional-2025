@@ -203,7 +203,7 @@ class Perceptron:
         # elementos uniformemente espaciadas de self.W
         return [self.W[i] for i in indices]
 
-    def graphTraining(self, limit = -1):
+    def graphTraining(self, limit = -1, label=""):
         if self.N != 3:
             raise TypeError('No se puede graficar para mas de 2 entradas (+bias)')
 
@@ -230,7 +230,7 @@ class Perceptron:
         plt.ylim(-2,2)
         plt.xlabel("x1")
         plt.ylabel("x2")
-        plt.title("Evolucion del perceptron")
+        plt.title(label)
         plt.legend()
         plt.grid()
         plt.show()
