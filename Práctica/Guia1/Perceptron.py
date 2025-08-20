@@ -58,19 +58,14 @@ class Perceptron:
 
         return self.W[-1][1]
 
-    def addW(self, w: np.ndarray):
-        """Actualiza la lista de pesos agregando N pesos nuevos, que pasan a ser los actuales
+    def getPesos(self, limit: int) -> dict[int, np.ndarray[float]]:
+        if limit == -1 or limit >= len(self.W):
+            return self.W
 
-        Args:
-            w (list[float] | np.ndarray): pesos a agregar
-
-        Raises:
-            TypeError: el numero de pesos no coincide con el numero de entradas (N)
-        """
-        if w.shape[0] != self.N:
-            raise TypeError(f"Se esperaban {self.N} pesos. w.shape[0]={w.shape[0]}")
-
-        self.W.append((self.c_ajustes, w))
+        # tomar `limit` indices uniformemente espaciados, incluyendo el ultimo
+        indices = np.linspace(0, len(self.W) - 1, limit, endpoint=True, dtype=int)
+        # elementos uniformemente espaciadas de self.W
+        return [self.W[i] for i in indices]
 
     def initW(self):
         """Inicializa los pesos de forma aleatoria en [-0.5,0.5)"""
@@ -122,7 +117,7 @@ class Perceptron:
 
         # solo agregar al historial si es distinto del actual
         if error != 0:
-            self.addW(w)
+            self.W.append((self.c_ajustes, w))
 
     def errorRate(self, x, yd) -> float:
         """Tasa de error
@@ -181,7 +176,13 @@ class Perceptron:
         self.errorEvol(label=label)
 
         if gifPath != None:
-            self.trainingGif(x,yd,gifPath,label)
+            self.trainingGif(
+                x,
+                yd,
+                gifPath,
+                label,
+                limit=min(100, len(self.W)) # limitar a 100 frames
+            )
 
         return error
 
@@ -203,7 +204,10 @@ class Perceptron:
 
         return self.errorRate(x,yd)
 
-    def trainingGif(self, x, yd, gifPath: str, gifLabel: str = ''):
+    def trainingGif(self, x, yd, gifPath: str, gifLabel: str = '', limit = -1):
+        # pesos
+        W = self.getPesos(limit)
+
         fig, ax = plt.subplots()
         ax.set(
             xlim=[-2,2],
@@ -219,7 +223,7 @@ class Perceptron:
 
         # rectas
         x_vals = np.linspace(-2, 2, 100)
-        w1, w2, w0 = self.W[0][1]
+        w1, w2, w0 = W[0][1]
         # para evitar division por cero
         if w2 == 0:
             y_vals = np.full_like(x_vals, np.nan)
@@ -227,10 +231,11 @@ class Perceptron:
             # y_vals = (-w1/w2) * x_vals + (w0/w2)
             y_vals = (-w1/w2) * x_vals + (w0/w2)
         recta, = ax.plot(x_vals, y_vals)
+
         def update(frame):
-            if (frame >= len(self.W)):
-                return update(len(self.W) - 1)
-            w1, w2, w0 = self.W[frame][1]
+            if (frame >= len(W)):  # repetir ultimo frame
+                return update(len(W) - 1)
+            w1, w2, w0 = W[frame][1]
             if w2 == 0:
                 y_vals = np.full_like(x_vals, np.nan)
             else:
@@ -241,13 +246,17 @@ class Perceptron:
         gif = animation.FuncAnimation(
             fig=fig,
             func=update,
-            frames=len(self.W) + 3, # espera al final
+            frames=len(W) + 3, # espera al final
             interval=20,
             repeat=False,
             blit=True,  # pequena optimizacion
         )
 
         gifWriter = animation.PillowWriter(fps=2)
+
+        # "cerrar" figura para no ensuciar jupyter
+        plt.close(fig)
+
         gif.save(gifPath, writer=gifWriter)
 
     def errorEvol(self, label=''):
