@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 class Perceptron:
     """Perceptron simple con un numero fijo de entradas.
@@ -19,8 +20,8 @@ class Perceptron:
     test(x, yd)
         Testea el perceptron y devuelve la tasa de error
 
-    graphTraining()
-        Imprime un grafico con la evolucion de los pesos a lo largo del entrenamiento
+    trainingGif()
+        Genera un gif con la evolucion de las entradas en el entrenamiento (solo 2 entradas)
     """
 
     def __init__(self, N: int, rate: float, maxEpocas: int, funcionActivacion: callable, bias: float = None):
@@ -40,6 +41,7 @@ class Perceptron:
         self.N = N + 1 # entradas + bias
         self.c_ajustes = 0
         self.initW()
+        self.error_history = []
 
     @property
     def w(self) -> np.ndarray[float]:
@@ -68,11 +70,7 @@ class Perceptron:
         if w.shape[0] != self.N:
             raise TypeError(f"Se esperaban {self.N} pesos. w.shape[0]={w.shape[0]}")
 
-        self.c_ajustes += 1
-
-        # solo agregar al historial si es distinto del actual
-        if not np.array_equal(self.w, w):
-            self.W.append((self.c_ajustes, w))
+        self.W.append((self.c_ajustes, w))
 
     def initW(self):
         """Inicializa los pesos de forma aleatoria en [-0.5,0.5)"""
@@ -119,7 +117,12 @@ class Perceptron:
             x (list[float]): entradas
             error (float): error de la prediccion
         """
-        self.addW(self.w + self.rate * error * x)
+        w = self.w + self.rate * error * x
+        self.c_ajustes += 1
+
+        # solo agregar al historial si es distinto del actual
+        if error != 0:
+            self.addW(w)
 
     def errorRate(self, x, yd) -> float:
         """Tasa de error
@@ -140,7 +143,7 @@ class Perceptron:
 
         return fallos/casos
 
-    def entrenar(self, x, yd, targetError = -1) -> float:
+    def entrenar(self, x, yd, gifPath = None, label = '', targetError = -1) -> float:
         """Entrenar perceptron con datos de entradas y salidas esperadas
 
         Args:
@@ -171,8 +174,14 @@ class Perceptron:
 
             # verificar
             error = self.errorRate(x,yd)
+            self.error_history.append(error)
             if error <= targetError:
                 break
+
+        self.errorEvol(label=label)
+
+        if gifPath != None:
+            self.trainingGif(x,yd,gifPath,label)
 
         return error
 
@@ -194,45 +203,65 @@ class Perceptron:
 
         return self.errorRate(x,yd)
 
-    def getPesos(self, limit: int) -> dict[int, np.ndarray[float]]:
-        if limit == -1 or limit >= len(self.W):
-            return self.W
+    def trainingGif(self, x, yd, gifPath: str, gifLabel: str = ''):
+        fig, ax = plt.subplots()
+        ax.set(
+            xlim=[-2,2],
+            ylim=[-2,2],
+            xlabel='x1',
+            ylabel='x2',
+            title=f"Evolucion del perceptron {gifLabel}"
+        )
 
-        # tomar `limit` indices uniformemente espaciados, incluyendo el ultimo
-        indices = np.linspace(0, len(self.W) - 1, limit, endpoint=True, dtype=int)
-        # elementos uniformemente espaciadas de self.W
-        return [self.W[i] for i in indices]
+        # puntos
+        ax.scatter(x[yd == -1, 0], x[yd == -1, 1], color='red')
+        ax.scatter(x[yd == 1, 0], x[yd == 1, 1], color='green')
 
-    def graphTraining(self, limit = -1, label=""):
-        if self.N != 3:
-            raise TypeError('No se puede graficar para mas de 2 entradas (+bias)')
-
+        # rectas
         x_vals = np.linspace(-2, 2, 100)
+        w1, w2, w0 = self.W[0][1]
+        # para evitar division por cero
+        if w2 == 0:
+            y_vals = np.full_like(x_vals, np.nan)
+        else:
+            # y_vals = (-w1/w2) * x_vals + (w0/w2)
+            y_vals = (-w1/w2) * x_vals + (w0/w2)
+        recta, = ax.plot(x_vals, y_vals)
+        def update(frame):
+            if (frame >= len(self.W)):
+                return update(len(self.W) - 1)
+            w1, w2, w0 = self.W[frame][1]
+            if w2 == 0:
+                y_vals = np.full_like(x_vals, np.nan)
+            else:
+                y_vals = (-w1/w2) * x_vals + (w0/w2)
+            recta.set_ydata(y_vals)
+            return recta,
 
-        plt.figure(figsize=(10,10))
+        gif = animation.FuncAnimation(
+            fig=fig,
+            func=update,
+            frames=len(self.W) + 3, # espera al final
+            interval=20,
+            repeat=False,
+            blit=True,  # pequena optimizacion
+        )
 
-        W = self.getPesos(limit)
+        gifWriter = animation.PillowWriter(fps=2)
+        gif.save(gifPath, writer=gifWriter)
 
-        for it, w in W:
-            w1 = w[0]
-            w2 = w[1]
-            w0 = w[2]
-            if w1 == 0:
-                continue
+    def errorEvol(self, label=''):
+        fig, ax = plt.subplots()
+        ax.set(
+            xlabel='epoca',
+            ylabel='% error',
+            title=f"Evolucion del error {label}"
+        )
 
-            # w1x1 + w2x2 - w0 = 0 => x2 = -w1x1/w2 + w0/w2
-            y_vals = (-w1/w2) * x_vals + (w0 / w2)
-            plt.plot(x_vals, y_vals, label=f"Ajuste {int(it)}")
+        errores = self.error_history if len(self.error_history) > 1 else [self.error_history[0], self.error_history[0]] # para mostrar algo si se llego en una sola epoca
+        ax.plot(errores)
 
-        plt.axhline(y=0, color='k', linestyle='--')
-        plt.axvline(x=0, color='k', linestyle='--')
-        plt.xlim(-2,2)
-        plt.ylim(-2,2)
-        plt.xlabel("x1")
-        plt.ylabel("x2")
-        plt.title(label)
-        plt.legend()
-        plt.grid()
+        ax.grid()
         plt.show()
 
     def graphWeightEvol(self):
