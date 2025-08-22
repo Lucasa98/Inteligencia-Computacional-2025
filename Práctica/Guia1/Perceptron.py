@@ -1,1 +1,1 @@
-C:/facu/8°/Inteligencia/Inteligencia-Computacional-2025/Práctica/src/Perceptron.py
+../src/Perceptron.py
