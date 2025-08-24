@@ -1,1 +1,1 @@
-Práctica/src/PerceptronMulticapa.py
+../src/PerceptronMulticapa.py
