@@ -9,7 +9,7 @@ class PerceptronMulticapa:
         self.cant_entradas = cant_entradas
         self.max_epocas = max_epocas
         self.arq = capas
-        self.η - tasa_aprendizaje
+        self.η = tasa_aprendizaje
         self.W : list[np.ndarray] = []
 
         # iniciar generador de numeros
@@ -23,16 +23,14 @@ class PerceptronMulticapa:
             self.W.append(Wcapa)
 
     def calcular(self, x: np.ndarray[float]) -> np.ndarray[float]:
-        """Calcular la salida de la red dada una entrada
-
+        """Calcular la salida binarizada (-1/+1) de la red dada una entrada
         Args:
             x (np.ndarray[float]): entradas
-
         Returns:
             np.ndarray[float]: salidas
         """
-        # entradas para cada capa
-        entradas : list[np.ndarray[float]] = [np.append(x,-1)]
+        # entradas para cada capa ()
+        entradas : list[np.ndarray[float]] = [np.append(x,-1)] if x.shape[0] == self.cant_entradas-1 else [x]
 
         # PROPAGACION HACIA ADELANTE
         y = entradas[0]
@@ -44,8 +42,8 @@ class PerceptronMulticapa:
             # guardar salida con -1 (para el bias de la siguiente capa)
             entradas.append(np.append(y, -1))
 
-        # la salida de la ultima capa
-        return y
+        # la salida de la ultima capa binarizada
+        return np.ones(y.shape, dtype=float) if y >= 0 else -1 * np.ones(y.shape, dtype=float)
 
     def entrenar(self, x: np.ndarray[np.ndarray[float]], yd: np.ndarray[float], targetError: float = -1) -> float:
         patrones = x.shape[0]
@@ -60,8 +58,8 @@ class PerceptronMulticapa:
         for i in range(self.max_epocas):
             # iterar por patrones
             for n in range(patrones):
-                # guardamos las entradas de cada capa (la salida de la anterior y -1 del bias)
-                entradas: list[np.ndarray[float]] = [np.append(x[n])]
+                # guardamos las entradas de cada capa (la salida de la anterior y -1 del bias, que se lo agregue antes)
+                entradas: list[np.ndarray[float]] = [x[n]]
                 # guardamos las salidas de cada capa (estamos repitiendo datos que estan en `entradas` (sin el -1), pero es para claridad)
                 y = []
                 # PROPAGACION HACIA ADELANTE (calculo de salidas)
@@ -72,7 +70,7 @@ class PerceptronMulticapa:
                     y.append(self.φ(v))
 
                 # Calculo del error
-                e: np.ndarray[float] = np.subtract(yd[n],y) # vector de errores en salida
+                e: np.ndarray[float] = np.subtract(yd[n],y[-1]) # vector de errores en salida
                 ξ = 0.5 * np.sum(np.power(e,2))             # error cuadratico total
 
                 # RETROPROPAGACION (calculo de deltas)
@@ -87,7 +85,7 @@ class PerceptronMulticapa:
                 # calcular y aplicar ajustes
                 for j in range(len(self.arq)):
                     dW = self.η * np.outer(deltas[j], entradas[j])  # para algo servia el vector entradas
-                    self.W[j] -= dW
+                    self.W[j] += dW
 
             # verificar
             error = self.errorRate(x, yd)
@@ -98,9 +96,7 @@ class PerceptronMulticapa:
         return error
 
     def φ(self, v):
-        if type(v) == float:
-            return 2.0/(1.0 + np.exp(-v)) - 1.0
-        return np.divide([2.0]*len(v),(np.exp(-v) + 1.0)) - 1.0
+        return 2.0 / (1.0 + np.exp(-v)) - 1.0
 
     def dφ(self, y):
         """Derivada de la funcion de activacion"""
