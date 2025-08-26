@@ -11,6 +11,7 @@ class PerceptronMulticapa:
         self.arq = capas
         self.η = tasa_aprendizaje
         self.W : list[np.ndarray] = []
+        self.error_history = []
 
         # iniciar generador de numeros
         self.rng = np.random.default_rng()
@@ -89,6 +90,7 @@ class PerceptronMulticapa:
 
             # verificar
             error = self.errorRate(x, yd)
+            self.error_history.append(error)
             #self.error_history.append(error)
             if error <= targetError:
                 break
