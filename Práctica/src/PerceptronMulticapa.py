@@ -12,6 +12,7 @@ class PerceptronMulticapa:
         self.η = tasa_aprendizaje
         self.W : list[np.ndarray] = []
         self.error_history = []
+        self.quaderror_history = []
 
         # iniciar generador de numeros
         self.rng = np.random.default_rng()
@@ -62,6 +63,7 @@ class PerceptronMulticapa:
         error = 0.0
         for i in range(self.max_epocas):
             # iterar por patrones
+            quad_error = 0
             for n in range(patrones):
                 # guardamos las entradas de cada capa (la salida de la anterior y -1 del bias, que se lo agregue antes)
                 entradas: list[np.ndarray[float]] = [x[n]]
@@ -77,6 +79,7 @@ class PerceptronMulticapa:
                 # Calculo del error
                 e: np.ndarray[float] = np.subtract(yd[n],y[-1]) # vector de errores en salida
                 ξ = 0.5 * np.sum(np.power(e,2))             # error cuadratico total
+                quad_error += ξ
 
                 # RETROPROPAGACION (calculo de deltas)
                 deltas = [None] * len(self.capas)     # lista de deltas de cada capa
@@ -95,7 +98,7 @@ class PerceptronMulticapa:
             # verificar
             error = self.errorRate(x, yd)
             self.error_history.append(error)
-            #self.error_history.append(error)
+            self.quaderror_history.append(quad_error/patrones)
             if error <= targetError:
                 break
 
