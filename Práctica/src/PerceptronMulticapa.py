@@ -116,7 +116,7 @@ class PerceptronMulticapa:
         fallos = 0
         for i in range(patrones):
             y = self.calcular(x[i])
-            if y != yd[i]:    # mmm esto solo para el caso de xor
+            if (y!=yd[i]).any():    # mmm esto solo para el caso de xor
                 fallos += 1
 
         return fallos/patrones
