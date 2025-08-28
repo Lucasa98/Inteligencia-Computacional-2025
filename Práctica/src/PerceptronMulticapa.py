@@ -8,7 +8,7 @@ class PerceptronMulticapa:
         """
         self.cant_entradas = cant_entradas
         self.max_epocas = max_epocas
-        self.arq = capas
+        self.capas = capas
         self.η = tasa_aprendizaje
         self.W : list[np.ndarray] = []
         self.error_history = []
@@ -17,10 +17,10 @@ class PerceptronMulticapa:
         self.rng = np.random.default_rng()
 
         # init pesos
-        for capa in range(len(self.arq)):
+        for capa in range(len(self.capas)):
             # las entradas de la primer capa son las entradas de la red
-            cant_pesos = cant_entradas if capa == 0 else self.arq[capa-1]
-            Wcapa = self.rng.uniform(-0.5, 0.5, (self.arq[capa], cant_pesos + 1)) # le sumamos un peso (del bias)
+            cant_pesos = cant_entradas if capa == 0 else self.capas[capa-1]
+            Wcapa = self.rng.uniform(-0.5, 0.5, (self.capas[capa], cant_pesos + 1)) # le sumamos un peso (del bias)
             self.W.append(Wcapa)
 
     def calcular(self, x: np.ndarray[float]) -> np.ndarray[float]:
@@ -35,7 +35,7 @@ class PerceptronMulticapa:
 
         # PROPAGACION HACIA ADELANTE
         y = entradas[0]
-        for capa in range(len(self.arq)):
+        for capa in range(len(self.capas)):
             # salida lineal
             v = np.dot(self.W[capa], entradas[capa])
             # salida no-lineal
@@ -43,8 +43,12 @@ class PerceptronMulticapa:
             # guardar salida con -1 (para el bias de la siguiente capa)
             entradas.append(np.append(y, -1))
 
-        # la salida de la ultima capa binarizada
-        return np.ones(y.shape, dtype=float) if y >= 0 else -1 * np.ones(y.shape, dtype=float)
+        if y.shape == (1,):
+            return np.ones((1,)) if y >= 0 else -1 * np.ones((1,))
+        y_wta = -1 * np.ones(y.shape, dtype=float)
+        y_wta[np.argmax(y)] = 1
+        return y_wta
+        #return np.ones(y.shape, dtype=float) if y >= 0 else -1 * np.ones(y.shape, dtype=float)
 
     def entrenar(self, x: np.ndarray[np.ndarray[float]], yd: np.ndarray[float], targetError: float = -1) -> float:
         patrones = x.shape[0]
@@ -64,7 +68,7 @@ class PerceptronMulticapa:
                 # guardamos las salidas de cada capa (estamos repitiendo datos que estan en `entradas` (sin el -1), pero es para claridad)
                 y = []
                 # PROPAGACION HACIA ADELANTE (calculo de salidas)
-                for j in range(len(self.arq)):
+                for j in range(len(self.capas)):
                     # salida lineal
                     v = np.dot(self.W[j],entradas[j])
                     entradas.append(np.append(self.φ(v),-1))
@@ -75,16 +79,16 @@ class PerceptronMulticapa:
                 ξ = 0.5 * np.sum(np.power(e,2))             # error cuadratico total
 
                 # RETROPROPAGACION (calculo de deltas)
-                deltas = [None] * len(self.arq)     # lista de deltas de cada capa
+                deltas = [None] * len(self.capas)     # lista de deltas de cada capa
                 deltas[-1] = e * self.dφ(y[-1])     # delta de ultima capa
-                for j in range(len(self.arq)-2, -1, -1):
+                for j in range(len(self.capas)-2, -1, -1):
                     # el vector de deltas de la capa j es el W[j+1]^T * deltas[j+1] * φ'(y[j])
                     retro = np.dot(self.W[j+1].T, deltas[j+1])
                     retro = retro[:-1]      # descartamos el ultimo (del bias)
                     deltas[j] = retro * self.dφ(y[j])
 
                 # calcular y aplicar ajustes
-                for j in range(len(self.arq)):
+                for j in range(len(self.capas)):
                     dW = self.η * np.outer(deltas[j], entradas[j])  # para algo servia el vector entradas
                     self.W[j] += dW
 
@@ -112,7 +116,7 @@ class PerceptronMulticapa:
         fallos = 0
         for i in range(patrones):
             y = self.calcular(x[i])
-            if np.sign(y) != np.sign(yd[i]):    # mmm esto solo para el caso de xor
+            if y != yd[i]:    # mmm esto solo para el caso de xor
                 fallos += 1
 
         return fallos/patrones
