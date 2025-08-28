@@ -44,12 +44,11 @@ class PerceptronMulticapa:
             # guardar salida con -1 (para el bias de la siguiente capa)
             entradas.append(np.append(y, -1))
 
-        if y.shape == (1,):
-            return np.ones((1,)) if y >= 0 else -1 * np.ones((1,))
+        if y.shape[0] == 1:
+            return np.ones(y.shape, dtype=float) if y >= 0 else -1 * np.ones(y.shape, dtype=float)
         y_wta = -1 * np.ones(y.shape, dtype=float)
         y_wta[np.argmax(y)] = 1
         return y_wta
-        #return np.ones(y.shape, dtype=float) if y >= 0 else -1 * np.ones(y.shape, dtype=float)
 
     def entrenar(self, x: np.ndarray[np.ndarray[float]], yd: np.ndarray[float], targetError: float = -1) -> float:
         patrones = x.shape[0]
@@ -104,6 +103,17 @@ class PerceptronMulticapa:
 
         return error
 
+    def test(self, x: np.ndarray[np.ndarray[float]], yd: np.ndarray[float]) -> float:
+        patrones = x.shape[0]
+
+        if x.shape[1] != self.cant_entradas:
+            raise TypeError(f"Se esperaba {self.cant_entradas}. x contiene {x.shape[1]} entradas por patron.")
+
+        # agregar entrada -1 del bias
+        x = np.hstack([x, -1 * np.ones((patrones, 1))])
+
+        return self.errorRate(x, yd)
+
     def φ(self, v):
         return 2.0 / (1.0 + np.exp(-v)) - 1.0
 
@@ -115,6 +125,7 @@ class PerceptronMulticapa:
         return 0.5 * error * (1 + y) * (1 - y)
 
     def errorRate(self, x: np.ndarray[np.ndarray[float]], yd: np.ndarray[float]) -> float:
+        """Calcula la tasa de error del perceptron frente a unas entradas y salidas. Las entradas deben incluir el -1 de bias al final"""
         patrones = x.shape[0]
         fallos = 0
         for i in range(patrones):
