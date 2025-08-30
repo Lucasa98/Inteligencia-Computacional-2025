@@ -24,32 +24,6 @@ class PerceptronMulticapa:
             Wcapa = self.rng.uniform(-0.5, 0.5, (self.capas[capa], cant_pesos + 1)) # le sumamos un peso (del bias)
             self.W.append(Wcapa)
 
-    def calcular(self, x: np.ndarray[float]) -> np.ndarray[float]:
-        """Calcular la salida binarizada (-1/+1) de la red dada una entrada
-        Args:
-            x (np.ndarray[float]): entradas
-        Returns:
-            np.ndarray[float]: salidas
-        """
-        # entradas para cada capa ()
-        entradas : list[np.ndarray[float]] = [np.append(x,-1)] if x.shape[0] == self.cant_entradas-1 else [x]
-
-        # PROPAGACION HACIA ADELANTE
-        y = entradas[0]
-        for capa in range(len(self.capas)):
-            # salida lineal
-            v = np.dot(self.W[capa], entradas[capa])
-            # salida no-lineal
-            y = self.φ(v)
-            # guardar salida con -1 (para el bias de la siguiente capa)
-            entradas.append(np.append(y, -1))
-
-        if y.shape[0] == 1:
-            return np.ones(y.shape, dtype=float) if y >= 0 else -1 * np.ones(y.shape, dtype=float)
-        y_wta = -1 * np.ones(y.shape, dtype=float)
-        y_wta[np.argmax(y)] = 1
-        return y_wta
-
     def entrenar(self, x: np.ndarray[np.ndarray[float]], yd: np.ndarray[float], targetError: float = -1) -> float:
         patrones = x.shape[0]
 
@@ -114,6 +88,32 @@ class PerceptronMulticapa:
 
         return self.errorRate(x, yd)
 
+    def calcular(self, x: np.ndarray[float]) -> np.ndarray[float]:
+        """Calcular la salida binarizada (-1/+1) de la red dada una entrada
+        Args:
+            x (np.ndarray[float]): entradas
+        Returns:
+            np.ndarray[float]: salidas
+        """
+        # entradas para cada capa ()
+        entradas : list[np.ndarray[float]] = [np.append(x,-1)] if x.shape[0] == self.cant_entradas-1 else [x]
+
+        # PROPAGACION HACIA ADELANTE
+        y = entradas[0]
+        for capa in range(len(self.capas)):
+            # salida lineal
+            v = np.dot(self.W[capa], entradas[capa])
+            # salida no-lineal
+            y = self.φ(v)
+            # guardar salida con -1 (para el bias de la siguiente capa)
+            entradas.append(np.append(y, -1))
+
+        if y.shape[0] == 1:
+            return np.ones(y.shape, dtype=float) if y >= 0 else -1 * np.ones(y.shape, dtype=float)
+        y_wta = -1 * np.ones(y.shape, dtype=float)
+        y_wta[np.argmax(y)] = 1
+        return y_wta
+
     def φ(self, v):
         return 2.0 / (1.0 + np.exp(-v)) - 1.0
 
@@ -134,3 +134,27 @@ class PerceptronMulticapa:
                 fallos += 1
 
         return fallos/patrones
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        """
+        Compute output of the NN for inputs x.
+        x shape: (N, cant_entradas)
+        """
+        if x.ndim == 1:
+            x = x.reshape(1, -1)
+        patrones = x.shape[0]
+
+        # bias
+        x = np.hstack([x, -1 * np.ones((patrones, 1))])
+
+        y_final = []
+        for n in range(patrones):
+            entradas = x[n]
+            for j in range(len(self.capas)):
+                v = np.dot(self.W[j], entradas)
+                salida = self.φ(v)
+                # bias
+                entradas = np.append(salida, -1)
+            y_final.append(salida)
+
+        return np.array(y_final).squeeze()
