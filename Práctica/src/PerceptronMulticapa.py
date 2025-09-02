@@ -46,8 +46,9 @@ class PerceptronMulticapa:
                 for j in range(len(self.capas)):
                     # salida lineal
                     v = np.dot(self.W[j],entradas[j])
-                    entradas.append(np.append(self.φ(v),-1))
-                    y.append(self.φ(v))
+                    yj = self.φ(v)
+                    entradas.append(np.concatenate([yj,[-1]]))
+                    y.append(yj)
 
                 # Calculo del error
                 e: np.ndarray[float] = np.subtract(yd[n],y[-1]) # vector de errores en salida
@@ -158,3 +159,71 @@ class PerceptronMulticapa:
             y_final.append(salida)
 
         return np.array(y_final).squeeze()
+
+    def entrenarMinibatch(self, x: np.ndarray[np.ndarray[float]], yd: np.ndarray[float], targetError: float = -1, batchSize: int = 1) -> float:
+        patrones = x.shape[0]
+
+        if x.shape[1] != self.cant_entradas:
+            raise TypeError(f"Se esperaba {self.cant_entradas}. x contiene {x.shape[1]} entradas por patron.")
+
+        # agregar entrada -1 del bias
+        x = np.hstack([x, -1 * np.ones((patrones, 1))])
+
+        error = 0.0
+        for i in range(self.max_epocas):
+            # desordenar entradas
+            idx = self.rng.permutation(patrones)
+            x, yd = x[idx], yd[idx]
+            # iterar por patrones
+            quad_error = 0
+            batch_dW: list[np.ndarray[float]] = [np.zeros(shape=self.W[j].shape, dtype=float) for j in range(len(self.capas))]
+            batched = 0
+            for n in range(patrones):
+                # guardamos las entradas de cada capa (la salida de la anterior y -1 del bias, que se lo agregue antes)
+                entradas: list[np.ndarray[float]] = [x[n]]
+                # guardamos las salidas de cada capa (estamos repitiendo datos que estan en `entradas` (sin el -1), pero es para claridad)
+                y = []
+                # PROPAGACION HACIA ADELANTE (calculo de salidas)
+                for j in range(len(self.capas)):
+                    # salida lineal
+                    v = np.dot(self.W[j],entradas[j])
+                    yj = self.φ(v)
+                    entradas.append(np.concatenate([yj,[-1]]))
+                    y.append(yj)
+
+                # Calculo del error
+                e = np.subtract(yd[n],y[-1]) # vector de errores en salida
+                ξ = 0.5 * np.sum(np.power(e,2))             # error cuadratico total
+                quad_error += ξ
+
+                # RETROPROPAGACION (calculo de deltas)
+                deltas = [None] * len(self.capas)     # lista de deltas de cada capa
+                deltas[-1] = e * self.dφ(y[-1])     # delta de ultima capa
+                for j in range(len(self.capas)-2, -1, -1):
+                    # el vector de deltas de la capa j es el W[j+1]^T * deltas[j+1] * φ'(y[j])
+                    retro = np.dot(self.W[j+1].T, deltas[j+1])
+                    retro = retro[:-1]      # descartamos el ultimo (del bias)
+                    deltas[j] = retro * self.dφ(y[j])
+
+                # calcular y aplicar ajustes
+                for j in range(len(self.capas)):
+                    batch_dW[j] += self.η * np.outer(deltas[j], entradas[j])  # para algo servia el vector entradas
+                batched += 1
+
+                if n % batchSize == 0 or n + 1 == patrones:
+                    for j in range(len(self.capas)):
+                        # aplicar un promedio de los gradientes acumulados
+                        self.W[j] += np.divide(batch_dW[j], batched * np.ones(shape=batch_dW[j].shape, dtype=float))
+                        # reiniciar gradientes
+                        batch_dW[j] = np.zeros(shape=self.W[j].shape, dtype=float)
+
+                    batched = 0
+
+            # verificar
+            error = self.errorRate(x, yd)
+            self.error_history.append(error)
+            self.quaderror_history.append(quad_error/patrones)
+            if error <= targetError:
+                break
+
+        return error
