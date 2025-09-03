@@ -18,15 +18,15 @@ class Hopfield:
 
         self.N = N
 
-    def recuperar(self, x: np.ndarray[int], max_iter: int = 100) -> np.ndarray[int]:
+    def recuperar(self, x: np.ndarray[int], max_iter: int = 100) -> list[np.ndarray[int]]:
+        x = np.where(x == 0, -1, 1)
         # inicializar y(0)
-        y = x.copy()
+        y = [x.copy()]
 
-        for _ in range(max_iter):
-            yn = np.sign(np.matmul(self.w, y))
-            yn[yn == 0] = 1
-            if np.array_equal(y, yn):
+        for i in range(1,max_iter):
+            y.append(np.sign(np.matmul(self.w, y[i-1])))
+            y[i][y[i] == 0] = 1
+            if np.array_equal(y[i-1], y[i]):
                 break
-            y = yn
 
         return y
