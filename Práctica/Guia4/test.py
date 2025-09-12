@@ -37,14 +37,17 @@ def animate_som2d(som: Som.Som, data: np.ndarray[float]):
     ax.set_aspect("equal")
 
     # scatter all neurons
-    scat = ax.scatter(som.history[0][:,:,0], som.history[0][:,:,1], c="blue", animated=True)
+    scat = ax.scatter(som.history[0][:,:,0], som.history[0][:,:,1], c="blue")
 
     # connect horizontal and vertical neighbors
     row_lines = [None for _ in range(N)]
     col_lines = [None for _ in range(N)]
     for i in range(N):
-        row_lines[i], = ax.plot(som.history[0][i,:,0], som.history[0][i,:,1], c="gray", animated=True)   # rows
-        col_lines[i], = ax.plot(som.history[0][:,i,0], som.history[0][:,i,1], c="gray", animated=True)   # cols
+        row_lines[i], = ax.plot(som.history[0][i,:,0], som.history[0][i,:,1], c="gray")   # rows
+        col_lines[i], = ax.plot(som.history[0][:,i,0], som.history[0][:,i,1], c="gray")   # cols
+
+    def init(): # esto para que ande en linux
+        return [scat] + row_lines + col_lines
 
     def update(frame):
         W = som.history[frame]                      # (N, N, 2)
@@ -54,7 +57,7 @@ def animate_som2d(som: Som.Som, data: np.ndarray[float]):
             col_lines[i].set_data(W[:,i,0], W[:,i,1])   # cols
         return [scat] + row_lines + col_lines
 
-    ani = FuncAnimation(fig, update, frames=len(som.history), interval=200, blit=True)
+    ani = FuncAnimation(fig, update, frames=len(som.history), init_func=init, interval=200)
     plt.show()
 
 data = np.array([
