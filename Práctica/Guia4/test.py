@@ -2,13 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import Som1D
+import Som
 
 def plot_som_history(som: Som1D.Som1D, data: np.ndarray[float]):
     fig, ax = plt.subplots()
     ax.grid()
     ax.scatter(data[:,0], data[:,1])
     scat, = ax.plot([], [], 'o-', lw=2)  # neurons with lines
-    
+
     # define limits from all history
     all_weights = np.vstack(som.history)
     ax.set_xlim(all_weights[:,0].min()-0.2, all_weights[:,0].max()+0.2)
@@ -21,6 +22,39 @@ def plot_som_history(som: Som1D.Som1D, data: np.ndarray[float]):
         return scat,
 
     ani = FuncAnimation(fig, update, frames=len(som.history), interval=50, blit=True)
+    plt.show()
+
+def animate_som2d(som: Som.Som, data: np.ndarray[float]):
+    N = som.W.shape[0]
+    fig, ax = plt.subplots()
+    ax.grid()
+    ax.scatter(data[:,0], data[:,1])
+
+    # set axis limits based on all history
+    all_weights = np.vstack([W.reshape(-1,2) for W in som.history])
+    ax.set_xlim(all_weights[:,0].min()-0.2, all_weights[:,0].max()+0.2)
+    ax.set_ylim(all_weights[:,1].min()-0.2, all_weights[:,1].max()+0.2)
+    ax.set_aspect("equal")
+
+    # scatter all neurons
+    scat = ax.scatter(som.history[0][:,:,0], som.history[0][:,:,1], c="blue", animated=True)
+
+    # connect horizontal and vertical neighbors
+    row_lines = [None for _ in range(N)]
+    col_lines = [None for _ in range(N)]
+    for i in range(N):
+        row_lines[i], = ax.plot(som.history[0][i,:,0], som.history[0][i,:,1], c="gray", animated=True)   # rows
+        col_lines[i], = ax.plot(som.history[0][:,i,0], som.history[0][:,i,1], c="gray", animated=True)   # cols
+
+    def update(frame):
+        W = som.history[frame]                      # (N, N, 2)
+        scat.set_offsets(np.c_[W.reshape(-1, 2)])   # (N*N, 2)
+        for i in range(N):
+            row_lines[i].set_data(W[i,:,0], W[i,:,1])   # rows
+            col_lines[i].set_data(W[:,i,0], W[:,i,1])   # cols
+        return [scat] + row_lines + col_lines
+
+    ani = FuncAnimation(fig, update, frames=len(som.history), interval=200, blit=True)
     plt.show()
 
 data = np.array([
@@ -41,6 +75,11 @@ data = np.array([
     [-1.1,1.1],
     [-1.1,-1.1],
 ])
-som = Som1D.Som1D(32,0.2)
-som.entrenar(data, 50)
-plot_som_history(som, data)
+som1d = Som1D.Som1D(32,0.2)
+som1d.entrenar(data, 50)
+
+som2d = Som.Som(4,0.2)
+som2d.entrenar(data)
+
+animate_som2d(som2d, data)
+#plot_som_history(som1d, data)
