@@ -1,8 +1,14 @@
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import Som1D
-import Som
+from Som import Som
+
+def cargarCSV(csvRelativePath, delimeter = ',') -> np.ndarray[any]:
+    this_folder = os.path.abspath('') 
+    fullPath = os.path.join(this_folder, csvRelativePath)
+    return np.loadtxt(fullPath, dtype=float, delimiter=delimeter)
 
 def plot_som_history(som: Som1D.Som1D, data: np.ndarray[float]):
     fig, ax = plt.subplots()
@@ -24,7 +30,7 @@ def plot_som_history(som: Som1D.Som1D, data: np.ndarray[float]):
     ani = FuncAnimation(fig, update, frames=len(som.history), interval=50, blit=True)
     plt.show()
 
-def animate_som2d(som: Som.Som, data: np.ndarray[float]):
+def animate_som2d(som: Som, data: np.ndarray[float]):
     N = som.W.shape[0]
     fig, ax = plt.subplots()
     ax.grid()
@@ -59,36 +65,15 @@ def animate_som2d(som: Som.Som, data: np.ndarray[float]):
             col_lines[i].set_data(W[:,i,0], W[:,i,1])   # cols
         return [scat] + row_lines + col_lines
 
-    ani = FuncAnimation(fig, update, frames=len(som.history)+10, init_func=init, interval=200)
+    ani = FuncAnimation(fig, update, frames=len(som.history)+10, init_func=init, interval=16)
     plt.show()
 
-data = np.array([
-    [0.9,0.9],
-    [0.9,-0.9],
-    [0.9,1.1],
-    [0.9,-1.1],
-    [1.1,0.9],
-    [1.1,-0.9],
-    [1.1,1.1],
-    [1.1,-1.1],
-    [-0.9,0.9],
-    [-0.9,-0.9],
-    [-0.9,1.1],
-    [-0.9,-1.1],
-    [-1.1,0.9],
-    [-1.1,-0.9],
-    [-1.1,1.1],
-    [-1.1,-1.1],
-    [1,1],
-    [1,-1],
-    [-1,1],
-    [-1,-1]
-])
+data = np.loadtxt('./te.csv', dtype=float, delimiter=',')
 som1d = Som1D.Som1D(32,0.2)
 som1d.entrenar(data, 50)
 
-som2d = Som.Som(10,0.2)
-som2d.entrenar(data, 100)
+som2d = Som(10,[(0.9, 0.7),(0.7, 0.1),(0.1, 0.01)], [30, 300, 50])
+som2d.entrenar(data)
 
 animate_som2d(som2d, data)
 #plot_som_history(som1d, data)
