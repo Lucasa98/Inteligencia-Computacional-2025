@@ -7,12 +7,15 @@ class Som:
         self.rng = np.random.default_rng()
         self.history: list[np.ndarray[float]] = []
 
-    def entrenar(self, x: np.ndarray[float], max_epocas: int = 10):
+    def entrenar(self, x: np.ndarray[float], epocas: int = 10):
         # inicializar pesos (N x N x entradas)
         W = self.rng.uniform(-0.5, 0.5, (self.N, self.N, x.shape[1]))
-        entorno = 1
+        ini_entorno = self.N//2     # entorno inicial: mitad de la grilla
+        apr = self.η                # tasa de aprendizaje inicial
+        d_apr = apr/epocas          # decaimiento de la tasa de aprendizaje
 
-        for _ in range(max_epocas):
+        for e in range(epocas):
+            entorno = round(ini_entorno * (1 - e/epocas))
             for i in range(x.shape[0]):
                 diff = x[i] - W
                 # encontrar ganadora G = argmin(dist(W,x[i]))
@@ -20,7 +23,8 @@ class Som:
                 # definir vecinas
                 inix, finx, iniy, finy = max(0,Gix-entorno), min(self.N, Gix+entorno+1), max(0,Giy-entorno), min(self.N, Giy+entorno+1)
                 # ajustar ganadora y vecinas
-                W[inix:finx, iniy:finy] = W[inix:finx, iniy:finy] + self.η * diff[inix:finx, iniy:finy]
-                self.history.append(W.copy())
+                W[inix:finx, iniy:finy] = W[inix:finx, iniy:finy] + apr * diff[inix:finx, iniy:finy]
+            self.history.append(W.copy())
+            apr -= d_apr
 
         self.W = W
