@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from Som import Som
+from Som1D import Som1D
 
 # ///////////////////// Funciones auxiliares /////////////////////
 def cargarCSV(csvRelativePath, delimeter = ',') -> np.ndarray[any]:
@@ -77,8 +78,55 @@ som2d2 = Som(
 som2d10.entrenar(data)
 animate_som2d(som2d10, data)
 
-#som2d5.entrenar(data)
-#animate_som2d(som2d5, data)
 
-#som2d2.entrenar(data)
-#animate_som2d(som2d2, data)
+
+
+# Para 1D
+
+def animate_som1d(som: Som1D, data: np.ndarray[float]):
+    N = som.W.shape[0]
+    fig, ax = plt.subplots()
+    ax.grid()
+    ax.scatter(data[:,0], data[:,1], marker="x", c="gray")
+
+    all_weights = np.vstack([W for W in som.history])
+    ax.set_xlim(all_weights[:,0].min()-0.1, all_weights[:,0].max()+0.1)
+    ax.set_ylim(all_weights[:,1].min()-0.1, all_weights[:,1].max()+0.1)
+    ax.set_aspect("equal")
+
+    # título dinámico
+    title = ax.set_title("época 0")
+
+    # scatter de neuronas
+    scat = ax.scatter(som.history[0][:,0], som.history[0][:,1], c="blue")
+
+    # línea conectando neuronas
+    line, = ax.plot(som.history[0][:,0], som.history[0][:,1], 'o-', c="red")
+
+    def init():
+        return [scat, line]
+
+    def update(frame):
+        if frame >= len(som.history):
+            return
+        W = som.history[frame]   # (N, entradas)
+        scat.set_offsets(W)      # actualizar posiciones de neuronas
+        line.set_data(W[:,0], W[:,1])  # conectar neuronas en orden
+        title.set_text(f"época {frame}")
+        return [scat, line]
+
+    ani = FuncAnimation(fig, update, frames=len(som.history), init_func=init, interval=64)
+    plt.show()
+
+
+data = cargarCSV('Práctica\\Guia4\\data\\te.csv')
+
+som1d25 = Som1D(
+    N=25,
+    vecindades=[(10,10), (9,1), (0,0)],
+    tasa_aprendizaje=[(0.9, 0.7), (0.7, 0.1), (0.1, 0.01)],
+    epocas=[100, 200, 600]
+)
+
+som1d25.entrenar(data)
+animate_som1d(som1d25, data)
