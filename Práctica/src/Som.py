@@ -45,3 +45,22 @@ class Som:
 
         self.W = W
         return W_etapas
+
+    def etiquetar(self, x: np.ndarray[float], y: np.ndarray[any]):
+        etiquetas = np.empty(shape=(self.N, self.N), dtype=type(y.dtype))
+        for i in range(x.shape[0]):
+            # encontrar ganadora G = argmin(dist(W,x[i]))
+            dist = np.sum(np.power(x[i] - self.W, 2), 2)
+            # TODO: hacer que se etiquete por la mas frecuente, no la ultima
+            etiquetas[np.unravel_index(np.argmin(dist), dist.shape)] = y[i]
+
+        self.tags = etiquetas
+
+    def predict(self, x: np.ndarray[float]) -> np.ndarray[float]:
+        y = np.empty(shape=x.shape, dtype=float)
+        for i in range(x.shape[0]):
+            # encontrar ganadora G = argmin(dist(W,x[i]))
+            dist = np.sum(np.power(x[i] - self.W, 2), 2)
+            y[i] = self.W[np.unravel_index(np.argmin(dist), dist.shape)]
+
+        return y
