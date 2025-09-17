@@ -34,8 +34,9 @@ class Kmeans:
             # recalcular cada centroide
             grupos = tmpGrupos.copy()
             for i in range(self.N):
-                self.centroides[i] = x[(grupos == i)].mean(axis=0)
-
+                if len(x[grupos == i])>0:
+                    self.centroides[i] = x[grupos == i].mean(axis=0)
+                #else: centroide muerto
 
             # guardar posiciones actuales para el historial
             self.history.append(self.centroides.copy())
