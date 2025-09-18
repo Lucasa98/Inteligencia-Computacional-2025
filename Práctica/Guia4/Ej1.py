@@ -54,7 +54,7 @@ def animate_som2d(som: Som, data: np.ndarray[float]):
     plt.show()
 # ////////////////////////////////////////////////////////////////
 
-data = cargarCSV('Práctica\\Guia4\\data\\te.csv')
+data = cargarCSV(os.path.join('Práctica','Guia4','data','te.csv'))
 
 som2d10 = Som(
     N=10,
@@ -77,9 +77,8 @@ som2d2 = Som(
 
 som2d10.entrenar(data)
 animate_som2d(som2d10, data)
-
-
-
+#animate_som2d(som2d5, data)
+#animate_som2d(som2d2, data)
 
 # Para 1D
 
@@ -117,9 +116,6 @@ def animate_som1d(som: Som1D, data: np.ndarray[float]):
 
     ani = FuncAnimation(fig, update, frames=len(som.history), init_func=init, interval=64)
     plt.show()
-
-
-data = cargarCSV('Práctica\\Guia4\\data\\te.csv')
 
 som1d25 = Som1D(
     N=25,
