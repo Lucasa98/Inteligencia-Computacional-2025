@@ -1,21 +1,20 @@
+from tqdm.notebook import tqdm
 import numpy as np
 from typing import Callable
 
 class Evol:
     def __init__(self,
                  fit_fun: Callable[[np.ndarray[np.uint8]], np.ndarray[float]],
-                 encode_fun: Callable[[np.ndarray[float]], np.ndarray[np.uint8]],
                  decode_fun: Callable[[np.ndarray[np.uint8]], np.ndarray[float]],
                  max_gen: int = 20,
                  poblacion: int = 100,
                  progenitores: int = 10,
-                 precision: int = 8,
+                 long_cromosoma: int = 8,
                  mutacion: float = 0.01,
                  tolerancia: int = 5):
         """
         Args:
             fit_fun (Callable[[np.ndarray[np.uint8]], np.ndarray[float]]): funcion para calcular fitness
-            encode_fun (Callable[[np.ndarray[float]], np.ndarray[np.uint8]]): funcion para codificar
             decode_fun (Callable[[np.ndarray[np.uint8]], np.ndarray[float]]): funcion para decodificar
             max_gen (int, optional): numero maximo de generaciones. Defaults to 20.
             poblacion (int, optional): poblacion por generacion. Defaults to 100.
@@ -27,11 +26,10 @@ class Evol:
         self.pob = poblacion
         self.prog = progenitores
         self.calcular_fitness = fit_fun
-        self.encode = encode_fun
         self.decode = decode_fun
         self.mutacion = mutacion
         self.tol = tolerancia
-        self.n_bits = precision
+        self.n_bits = long_cromosoma
         self.rng = np.random.default_rng()
 
     def evolve(self) -> np.ndarray[float]:
@@ -40,12 +38,14 @@ class Evol:
         ventana = self.pob//self.prog
 
         # 2) calcular fitness
+        print('arranca1')
         fit = self.calcular_fitness(poblacion)
+        print('arranca2')
         sorted = np.argsort(fit)    # indices que ordenan de menor a mayor
 
         c_tol: int = 0   # contador de generaciones sin mejora
         fit_elite = fit[sorted[-1]]
-        for _ in range(self.max_gen):
+        for g in tqdm(range(self.max_gen)):
             # 1) elegir progenitores: un elite y el resto por ventana
             progenitores = np.empty((self.prog,self.n_bits),dtype=np.uint8)
             progenitores[0] = poblacion[sorted[-1]]   # elite
