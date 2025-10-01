@@ -1,11 +1,11 @@
-from tqdm.notebook import tqdm
+from tqdm import tqdm
+
 import numpy as np
 from typing import Callable
 
 class Evol:
     def __init__(self,
                  fit_fun: Callable[[np.ndarray[np.uint8]], np.ndarray[float]],
-                 decode_fun: Callable[[np.ndarray[np.uint8]], np.ndarray[float]],
                  init_fun: Callable[[int,int,np.random.Generator], np.ndarray[np.uint8]],
                  max_gen: int = 20,
                  poblacion: int = 100,
@@ -15,21 +15,21 @@ class Evol:
                  tolerancia: int = 5):
         """
         Args:
-            init_fun (Callable[[int,int,np.random.Generator], np.ndarray[np.uint8]]): funcion para inicializar la poblacion
-            fit_fun (Callable[[np.ndarray[np.uint8]], np.ndarray[float]]): funcion para calcular fitness
-            decode_fun (Callable[[np.ndarray[np.uint8]], np.ndarray[float]]): funcion para decodificar
-            max_gen (int, optional): numero maximo de generaciones. Defaults to 20.
-            poblacion (int, optional): poblacion por generacion. Defaults to 100.
-            progenitores (int, optional): progenitores elegidos en cada generacion. Defaults to 10.
-            precision (int, optional): numero de bits del cromosoma. Defaults to 8.
-            mutacion (float, optional): probabilidad de mutacion. Defaults to 0.01.
+            init_fun: funcion para inicializar la poblacion
+            fit_fun: funcion para calcular fitness
+
+            max_gen (optional): numero maximo de generaciones. Defaults to 20.
+            poblacion (optional): poblacion por generacion. Defaults to 100.
+            progenitores (optional): cantidad de progenitores elegidos en cada generacion. Defaults to 10.
+            precision (optional): numero de bits del cromosoma. Defaults to 8.
+            mutacion (optional): probabilidad de mutacion. Defaults to 0.01.
         """
+        self.init_fun = init_fun
+        self.calcular_fitness = fit_fun
+
         self.max_gen = max_gen
         self.pob = poblacion
         self.prog = progenitores
-        self.init_poblacion = init_fun
-        self.calcular_fitness = fit_fun
-        self.decode = decode_fun
         self.mutacion = mutacion
         self.tol = tolerancia
         self.n_bits = long_cromosoma
@@ -37,13 +37,11 @@ class Evol:
 
     def evolve(self) -> np.ndarray[float]:
         # 1) inicializar la poblacion al azar
-        poblacion = self.init_poblacion(self.pob, self.n_bits, self.rng)
+        poblacion = self.init_fun(self.pob, self.n_bits, self.rng)
         ventana = self.pob//self.prog
 
         # 2) calcular fitness
-        print('arranca1')
         fit = self.calcular_fitness(poblacion)
-        print('arranca2')
         sorted = np.argsort(fit)    # indices que ordenan de menor a mayor
 
         c_tol: int = 0   # contador de generaciones sin mejora
