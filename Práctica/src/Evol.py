@@ -5,8 +5,8 @@ from typing import Callable
 
 class Evol:
     def __init__(self,
-                 fit_fun: Callable[[np.ndarray[np.uint8]], np.ndarray[float]],
                  init_fun: Callable[[int,int,np.random.Generator], np.ndarray[np.uint8]],
+                 fit_fun: Callable[[np.ndarray[np.uint8]], np.ndarray[float]],
                  max_gen: int = 20,
                  poblacion: int = 100,
                  progenitores: int = 10,
@@ -34,6 +34,7 @@ class Evol:
         self.tol = tolerancia
         self.n_bits = long_cromosoma
         self.rng = np.random.default_rng()
+        self.fit_history = np.empty((0,2), dtype=float)
 
     def evolve(self) -> np.ndarray[float]:
         # 1) inicializar la poblacion al azar
@@ -46,6 +47,7 @@ class Evol:
 
         c_tol: int = 0   # contador de generaciones sin mejora
         fit_elite = fit[sorted[-1]]
+        self.fit_history = np.vstack([self.fit_history, [0,fit_elite]])
         for g in tqdm(range(self.max_gen)):
             # 1) elegir progenitores: un elite y el resto por ventana
             progenitores = np.empty((self.prog,self.n_bits),dtype=np.uint8)
@@ -74,10 +76,12 @@ class Evol:
             if fit[sorted[-1]] > fit_elite:
                 c_tol = 0
                 fit_elite = fit[sorted[-1]]
+                self.fit_history = np.vstack([self.fit_history, [g+1,fit_elite]])
             else:
                 c_tol = c_tol + 1
                 # condicion de parada
                 if c_tol == self.tol:
+                    self.fit_history = np.vstack([self.fit_history, [g+1,fit_elite]])
                     break
 
         return poblacion
