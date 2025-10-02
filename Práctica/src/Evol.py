@@ -62,13 +62,20 @@ class Evol:
             poblacion[:self.prog] = progenitores
             for i in range(self.prog,self.pob):
                 p1, p2 = self.rng.integers(0,self.prog,2)    # tomar progenitores al azar
-                c = self.rng.integers(0,self.n_bits,2).sort()  # punto de cruza
-                poblacion[i,:c] = progenitores[p1][:c]
-                poblacion[i,c:] = progenitores[p2][c:]
+
+                # punto de cruza: elegir inicio y fin del segmento a cruzar
+                c1, c2 = np.sort(self.rng.integers(0, self.n_bits, 2))
+                
+                # cruzar: segmento del padre 1 y el resto del padre 2
+                poblacion[i, :c1] = progenitores[p2, :c1]      # antes de c1
+                poblacion[i, c1:c2] = progenitores[p1, c1:c2]  # c1 a c2
+                poblacion[i, c2:] = progenitores[p2, c2:]      # de c2 al final
+
                 # mutar
                 if self.rng.random() < self.mutacion:
                     b = self.rng.integers(0,self.n_bits)
-                    poblacion[i][b] = 0 if poblacion[i][b] == 1 else 1
+                    poblacion[i, b] ^= 1  # invierte 0 a 1 y viceversa
+
 
             # 3) evaluar fitness
             fit = self.calcular_fitness(poblacion)
