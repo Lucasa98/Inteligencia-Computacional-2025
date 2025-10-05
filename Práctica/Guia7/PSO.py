@@ -16,34 +16,47 @@ class PSO:
         self.v = np.zeros((self.n_particulas, self.dim))  # Velocidades iniciales
         self.x_best_local = self.x.copy()  # Mejores posiciones individuales
         y = np.array([self.func(self.x[i,:]) for i in range(self.n_particulas)])
+        y = y.flatten()  #hacer 1d
         best_idx = np.argmin(y)
-        self.x_best_global = self.x[best_idx, :].reshape(1, self.dim)  # Mejor posición global
-
+        self.x_best_global = self.x[best_idx, :]  # Mejor posición global
+        self.y_best_global = y[best_idx]  # Mejor valor global
 
     def actualizar(self):
 
-        c_it = 0
+        c_it = 0 #contador de iteraciones sin mejora
 
         for it in range(self.max_it):
 
+            improved = False
+
             for p in range(self.n_particulas):
 
-                #sMEJOR POSICIÓN INDIVIDUAL
+                #MEJOR POSICIÓN INDIVIDUAL
                 #comparar la función objetivo evaluada en la particula con la función objetivo evaluada en la mejor posición histórica de esa partícula
-                if self.func(self.x[p,:]) < self.func(self.x_best_local[p,:]):
+                y_actual = self.func(self.x[p,:])
+                y_best_local = self.func(self.x_best_local[p,:])
+                if y_actual < y_best_local:
                     self.x_best_local[p,:] = self.x[p,:] 
+                    y_best_local = y_actual 
                     
 
                 #MEJOR POSICIÓN GLOBAL
-                #comparar la función de objetivo evaluada en la mejor posición de la partícula con la función evaluada en la mejor posición histórica del emjambre
-                if self.func(self.x_best_local[p,:]) < self.func(self.x_best_global):
-                    self.x_best_global = self.x_best_local[p,:].reshape(1, self.dim)   
-                    c_it+=1
+                #comparar la función de objetivo evaluada en la mejor posición de la partícula con la función evaluada en la mejor posición histórica del enjambre
+                if y_best_local < self.y_best_global:
+                    self.x_best_global = self.x_best_local[p,:].copy()
+                    self.y_best_global = y_best_local
+                    improved = True 
+           
+                
+            #condición de corte por tolerancia
+            if improved:
+                c_it = 0
+            else:
+                c_it += 1
 
-                #condición de corte por tolerancia
-                if c_it >= self.it_tol:
-                    print(f'Convergencia alcanzada en la iteración {it}')
-                    return self.x_best_global, self.func(self.x_best_global)
+            if c_it >= self.it_tol:
+                print(f'Convergencia alcanzada en iteración {it}')
+                break
 
             
             #FUNCIONES ESTOCÁSTICAS
@@ -70,6 +83,8 @@ class PSO:
                 self.x[p,:] = np.clip(self.x[p,:], self.xmin, self.xmax)
             
             self.it += 1
+
+        return self.x_best_global, self.y_best_global
 
 
 
