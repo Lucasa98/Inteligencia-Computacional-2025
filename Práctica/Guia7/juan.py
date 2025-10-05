@@ -9,10 +9,6 @@ def cargarCSV(csvRelativePath, delimeter = ',') -> np.ndarray[any]:
     fullPath = os.path.join(this_folder, csvRelativePath)
     return np.loadtxt(fullPath, dtype=float, delimiter=delimeter)
 
-import networkx as nx
-import matplotlib.pyplot as plt
-import numpy as np
-
 def plot_aco_path(G_matrix, path, node_positions=None, pheromones=None, title=None):
     n = G_matrix.shape[0]
     G = nx.Graph()
