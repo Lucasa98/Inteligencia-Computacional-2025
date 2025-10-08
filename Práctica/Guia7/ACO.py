@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 class ACO:
     def __init__(self, cant_hormigas: int, tasa_evaporacion: float, feromonas_depositadas: float, metodo: str = 'global', alpha: float = 1.0, beta: float = 1.0, max_it: int = 400):
@@ -19,11 +20,14 @@ class ACO:
         # indices del triangulo superior de una matriz NxN, con offset 1 (no queremos la diagonal)
         i, j = np.triu_indices(N,k=1)
         # inicializar diagonal superior
-        self.costos[i,j] = np.power(self.costos[i,j] / G[i,j], self.β)   # amplificar por beta
-        self.σ[i,j] = self.rng.uniform(0, 1, size=len(i))
+        self.costos[i, j] = np.power(1.0 / G[i, j], self.β)  # amplificar por beta
+        self.σ[i,j] = self.rng.uniform(0.1, 1, size=len(i))
         # reflejar diagonal superior en la inferior
         self.costos[j,i] = self.costos[i,j]
         self.σ[j,i] = self.σ[i,j]
+        #evitar division por 0
+        self.costos = np.nan_to_num(self.costos, nan=0.0, posinf=0.0, neginf=0.0)
+        self.σ = np.maximum(self.σ, 1e-10)  
 
     def buscar(self, G: np.ndarray[float], A: int, B: int):
         """
@@ -45,6 +49,7 @@ class ACO:
         no_improve = 0
         it = 0
         it_max_improve = 5
+        star_time = time.time()
 
         #condición de corte: 5 iteraciones sin mejora (por lo tanto siguen el mismo camino) o max_it iteraciones
         while no_improve<it_max_improve and it < self.max_it:
@@ -96,6 +101,7 @@ class ACO:
 
             # evaporar feromonas
             self.σ *= self.eta
+            self.σ = np.maximum(self.σ, 1e-10)  # evitar que las feromonas lleguen a 0
 
             match self.metodo:
                 case 'uniforme':
@@ -116,17 +122,21 @@ class ACO:
                         self.σ[j,i] = self.σ[i,j]
                 
                 case _:
-                    raise ValueError(f"Método {self.metodo} no reconocido")
-
-
-            if it%10 == 0:
-                print(f"Iteración {it}: mejor longitud = {best_long:.3f}")
-            
+                    raise ValueError(f"Método {self.metodo} no reconocido")   
             
             it += 1
 
-        print(f"Terminado en it {it} - mejor longitud = {best_long:.3f} - camino = {best_path}")
+        end_time = time.time()
+        total_time = end_time - star_time
 
-        self.best_long = best_long
-        self.best_path = best_path
-        return self.best_long, self.best_path
+        
+
+        #print(f"Terminado en it {it} - mejor longitud = {best_long:.3f} - camino = {best_path}")
+
+        # Convertir aristas en lista de nodos
+        nodos = [best_path[0][0]]  # primer nodo del primer par
+        for (i, j) in best_path:
+            nodos.append(j)
+        best_path = nodos
+
+        return total_time, best_long, best_path, it+1
