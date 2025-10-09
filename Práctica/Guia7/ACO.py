@@ -29,114 +29,108 @@ class ACO:
         self.costos = np.nan_to_num(self.costos, nan=0.0, posinf=0.0, neginf=0.0)
         self.σ = np.maximum(self.σ, 1e-10)  
 
-    def buscar(self, G: np.ndarray[float], A: int, B: int):
+    def buscar(self, G: np.ndarray[float], start: int = 0):
         """
-        Ejecuta ACO para buscar un camino desde A hasta B 
-        Retorna (best_path, best_length)
-        - best_path: lista de aristas [(i,j), (j,k), ...]
-        - best_length: suma de distancias
+        Ejecuta ACO para resolver el TSP:
+        - start: ciudad de inicio
+        Retorna (total_time, best_length, best_tour, iterations)
         """
+
         # inicializar feromonas con valores al azar
         # y costos para cada camino
         self.init(G)
+        n_ciudades = G.shape[0]
+        
         # ubicar hormigas en el origen
         self.hormigas = [[] for _ in range(self.N)]
         # reservar memoria para longitud de caminos
-        long = np.zeros(self.N, dtype=int)
-
+        long = np.zeros(self.N, dtype=float)
+        
         best_long = np.inf
         best_path = None
         no_improve = 0
         it = 0
-        it_max_improve = 5
-        star_time = time.time()
+        it_max_no_improve = 5 
+        start_time = time.time()
 
-        #condición de corte: 5 iteraciones sin mejora (por lo tanto siguen el mismo camino) o max_it iteraciones
-        while no_improve<it_max_improve and it < self.max_it:
+        # condición de corte: 5 iteraciones sin mejora
+        while no_improve < it_max_no_improve and it < self.max_it:
             # calcular deseo de cada camino
-            deseo = np.power(self.σ,self.α)*self.costos
-            # Por cada hormiga
+            deseo = np.power(self.σ, self.α) * self.costos
+            
             for k in range(len(self.hormigas)):
                 # vaciar el camino
                 hormiga = []
-                # vaciar recorridos
-                recorridos = [A]
-
-                # repetir hasta que la hormiga llegue a destino
-                while recorridos[-1] != B:
-                    # nodo actual
-                    a = recorridos[-1]
-                    
-                    # nodos posibles (sin los ya recorridos)
-                    nodos_validos = np.delete(np.arange(G.shape[0]), recorridos)
-
-                    # probabilidades correspondientes a cada nodo valido
-                    probs = deseo[a, nodos_validos]
-
+                pendientes = set(range(n_ciudades))
+                pendientes.remove(start)
+                current = start
+                
+                # repetir hasta que la hormiga haya visitado todo
+                while pendientes:
+                    nodos_validos = np.array(list(pendientes))
+                    probs = deseo[current, nodos_validos]
                     total = probs.sum()
+
                     if total == 0:
-                        raise ValueError(f"No hay caminos disponibles desde {a}")
-
-                    # elegir el siguiente nodo
-                    next = self.rng.choice(nodos_validos, p=probs/total)
-
-                    hormiga.append((a,next))
-                    recorridos.append(next)
-
-                # calcular longitud del camino
+                        raise ValueError(f"No hay caminos disponibles desde {current}")
+                    
+                    # seleccionar siguiente ciudad
+                    next_node = int(self.rng.choice(nodos_validos, p=probs/total))
+                    
+                    # actualizar ya visitados
+                    hormiga.append((current, next_node))
+                    pendientes.remove(next_node)
+                    current = next_node
+                
+                # regresar a la ciudad inicial
+                hormiga.append((current, start))
+                
+                # guardamos el camino de la hormiga y su longitud
                 self.hormigas[k] = hormiga
-                long[k] = sum(G[i,j] for i, j in hormiga)
+                long[k] = sum(G[i, j] for i, j in hormiga)
             
-            #hormiga elite
+            # hormiga elite
             idx_best = np.argmin(long)
             best_long_actual = long[idx_best]
             best_path_actual = self.hormigas[idx_best]
-
+            
             if best_long_actual < best_long:
                 best_long = best_long_actual
                 best_path = best_path_actual
                 no_improve = 0
             else:
                 no_improve += 1
-
+            
             # evaporar feromonas
             self.σ *= self.eta
-            self.σ = np.maximum(self.σ, 1e-10)  # evitar que las feromonas lleguen a 0
-
+            self.σ = np.maximum(self.σ, 1e-10)  # evitar que feromonas lleguen a 0
+            
             match self.metodo:
                 case 'uniforme':
                     for k in range(len(self.hormigas)):
                         for i, j in self.hormigas[k]:
                             self.σ[i,j] += self.Q
                             self.σ[j,i] = self.σ[i,j]
-
-                case 'local':   
+                case 'local':
                     for k in range(len(self.hormigas)):
                         for i, j in self.hormigas[k]:
-                            self.σ[i,j] += self.Q/long[k]
+                            self.σ[i,j] += self.Q / long[k]
                             self.σ[j,i] = self.σ[i,j]
-                
                 case 'global':
                     for i, j in best_path:
-                        self.σ[i,j] += self.Q/best_long
+                        self.σ[i,j] += self.Q / best_long
                         self.σ[j,i] = self.σ[i,j]
-                
                 case _:
-                    raise ValueError(f"Método {self.metodo} no reconocido")   
+                    raise ValueError(f"Método {self.metodo} no reconocido")
             
             it += 1
-
-        end_time = time.time()
-        total_time = end_time - star_time
-
         
-
-        #print(f"Terminado en it {it} - mejor longitud = {best_long:.3f} - camino = {best_path}")
-
-        # Convertir aristas en lista de nodos
-        nodos = [best_path[0][0]]  # primer nodo del primer par
-        for (i, j) in best_path:
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        # pasamos a lista de nodos
+        nodos = [start]
+        for i, j in best_path:
             nodos.append(j)
-        best_path = nodos
-
-        return total_time, best_long, best_path, it+1
+        
+        return total_time, best_long, nodos, it
