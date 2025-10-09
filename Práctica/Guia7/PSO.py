@@ -85,12 +85,6 @@ class PSO:
                 # limitar a los rangos
                 self.x[p,:] = np.clip(self.x[p,:], self.xmin, self.xmax)
 
-                # invertir velocidad si tocó el límite
-                out_of_bounds_low = self.x[p,:] == self.xmin
-                out_of_bounds_high = self.x[p,:] == self.xmax
-                self.v[p, out_of_bounds_low] *= -1
-                self.v[p, out_of_bounds_high] *= -1
-
 
             self.historial.append(self.x.copy())
             self.best_global_hist.append(self.x_best_global.copy())
