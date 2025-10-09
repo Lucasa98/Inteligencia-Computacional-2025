@@ -66,20 +66,20 @@ class ACO:
                 while recorridos[-1] != B:
                     # nodo actual
                     a = recorridos[-1]
-                    # probabilidad de cada nodo
-                    probs = deseo[a,:].copy()
+                    
+                    # nodos posibles (sin los ya recorridos)
+                    nodos_validos = np.delete(np.arange(G.shape[0]), recorridos)
 
-                    # anular probabilidades de nodos ya visitados
-                    for i in range(G.shape[0]):
-                        if i in recorridos:
-                            probs[i] = 0.0
+                    # probabilidades correspondientes a cada nodo valido
+                    probs = deseo[a, nodos_validos]
 
                     total = probs.sum()
                     if total == 0:
                         raise ValueError(f"No hay caminos disponibles desde {a}")
 
-                    # seleccionar proximo nodo
-                    next = self.rng.choice(np.arange(G.shape[0]), p=probs/total)   # elegir con probabilidades
+                    # elegir el siguiente nodo
+                    next = self.rng.choice(nodos_validos, p=probs/total)
+
                     hormiga.append((a,next))
                     recorridos.append(next)
 
