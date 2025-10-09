@@ -21,6 +21,9 @@ class PSO:
         self.x_best_global = self.x[best_idx, :]  # Mejor posición global
         self.y_best_global = y[best_idx]  # Mejor valor global
 
+        # Historial de posiciones
+        self.historial = [self.x.copy()]
+        self.best_global_hist = [self.x_best_global.copy()]
     def actualizar(self):
 
         c_it = 0 #contador de iteraciones sin mejora
@@ -79,8 +82,18 @@ class PSO:
                 #ACTUALIZAR POSICIÓN
                 self.x[p,:] += self.v[p,:] 
 
-                #limitar a los rangos
+                # limitar a los rangos
                 self.x[p,:] = np.clip(self.x[p,:], self.xmin, self.xmax)
+
+                # invertir velocidad si tocó el límite
+                out_of_bounds_low = self.x[p,:] == self.xmin
+                out_of_bounds_high = self.x[p,:] == self.xmax
+                self.v[p, out_of_bounds_low] *= -1
+                self.v[p, out_of_bounds_high] *= -1
+
+
+            self.historial.append(self.x.copy())
+            self.best_global_hist.append(self.x_best_global.copy())
             
             self.it += 1
 
